@@ -24,20 +24,30 @@ pipeline {
             }
         }
         stage('Push Docker Image') {
-            steps {
-                // Log in to Docker Hub and push the image
-                withCredentials([usernamePassword(credentialsId: "$DOCKER_CREDENTIALS_ID", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push $DOCKER_IMAGE:${BUILD_NUMBER}
-                        docker tag $DOCKER_IMAGE:${BUILD_NUMBER} $DOCKER_IMAGE:latest
-                        docker push $DOCKER_IMAGE:latest
-                    '''
+    steps {
+        // Log in to Docker Hub and push the image
+        withCredentials([usernamePassword(credentialsId: 'DOCKER_CREDENTIALS_ID', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            script {
+                def dockerImage = "$DOCKER_IMAGE"
+                def buildNumber = "${BUILD_NUMBER}"
+                
+                // Validate variables
+                if (!dockerImage || !buildNumber) {
+                    error "Docker Image or Build Number is not defined"
                 }
+
+                // Push the image
+                sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker push ${dockerImage}:${buildNumber}
+                    docker tag ${dockerImage}:${buildNumber} ${dockerImage}:latest
+                    docker push ${dockerImage}:latest
+                '''
             }
         }
     }
-    post {
+}
+ post {
         success {
             echo "Docker image $DOCKER_IMAGE:${BUILD_NUMBER} pushed successfully!"
         }

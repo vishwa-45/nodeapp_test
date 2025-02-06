@@ -20,7 +20,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 // Build the Docker image
-                sh 'docker build -t $DOCKER_IMAGE:${BUILD_NUMBER} .'
+                sh 'docker build -t vishwa318/build-and-push:9 .'
             }
         }
         stage('Push Docker Image') {

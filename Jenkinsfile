@@ -20,34 +20,24 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 // Build the Docker image
-                sh 'docker build -t vishwa318/build-and-push:9 .'
+                sh 'docker build -t $DOCKER_IMAGE:${BUILD_NUMBER} .'
             }
         }
         stage('Push Docker Image') {
-    steps {
-        // Log in to Docker Hub and push the image
-        withCredentials([usernamePassword(credentialsId: 'DOCKER_CREDENTIALS_ID', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-            script {
-                def dockerImage = "$DOCKER_IMAGE"
-                def buildNumber = "${BUILD_NUMBER}"
-                
-                // Validate variables
-                if (!dockerImage || !buildNumber) {
-                    error "Docker Image or Build Number is not defined"
+            steps {
+                // Log in to Docker Hub and push the image
+                withCredentials([usernamePassword(credentialsId: "$DOCKER_CREDENTIALS_ID", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push $DOCKER_IMAGE:${BUILD_NUMBER}
+                        docker tag $DOCKER_IMAGE:${BUILD_NUMBER} $DOCKER_IMAGE:latest
+                        docker push $DOCKER_IMAGE:latest
+                    '''
                 }
-
-                // Push the image
-                sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push ${dockerImage}:${buildNumber}
-                    docker tag ${dockerImage}:${buildNumber} ${dockerImage}:latest
-                    docker push ${dockerImage}:latest
-                '''
             }
         }
     }
-}
- post {
+    post {
         success {
             echo "Docker image $DOCKER_IMAGE:${BUILD_NUMBER} pushed successfully!"
         }
